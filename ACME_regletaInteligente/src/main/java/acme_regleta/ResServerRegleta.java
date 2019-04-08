@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import acme_regleta.entities.Dispositivo;
 import acme_regleta.entities.Usuario;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
@@ -126,21 +127,24 @@ public class ResServerRegleta extends AbstractVerticle{
 								//Realizo la consulta a la base de datos.
 								/*
 								 * Dame la informacion del dispositivo x que tiene como usuario asignado el y.
-								 * Posible: 
-								 * select if
-										((select idDispositivo from dad_acme.relacionuserdisp where idUsuario 
-												= ANY (select idUsuario from dad_acme.usuario where aliasUsuario = 'ale'))
-									        , 0
-									        , 1);
 								 */
 								connection.result().query(
-										"SELECT * from dad_acme.dispositivo where aliasDisp = "
-												+ "'" + paramDis + "' "
-													+ "= ANY (select idDispositivo from dad_acme.relacionuserdisp where aliasUsuario = '"+paramUs+"' );", result ->{		//result -> resultado de la conexion
+										"SELECT dispositivo.idDispositivo, aliasDisp " + 
+										"FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+										"				  INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario"
+										+ "			 where usuario.aliasUsuario = '"+ paramUs +"' and aliasDisp = '"+ paramDis +"';", result ->{		//result -> resultado de la conexion
 									if(result.succeeded()) {								
-										routingContext
-											.response()
-												.end(result.result().toJson().encodePrettily());	//Enviamos a nuestro cliente el resultado de la consulta.
+										//Procesamiento de datos
+										Gson gson = new Gson();
+										List<Dispositivo> dispositivo= new ArrayList<>();
+										
+										//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+										for (JsonObject json : result.result().getRows()) {
+											dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
+											//Convertimos de jsonObject a object.
+										}
+										
+										routingContext.response().end(gson.toJson(dispositivo));
 										
 									}else {
 										System.out.println(result.cause().getMessage());
