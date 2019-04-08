@@ -132,7 +132,6 @@ public class ResServerRegleta extends AbstractVerticle{
 												= ANY (select idUsuario from dad_acme.usuario where aliasUsuario = 'ale'))
 									        , 0
 									        , 1);
-									        --comprobar otros casos.
 								 */
 								connection.result().query(
 										"SELECT * from dad_acme.dispositivo where aliasDisp = "
