@@ -5,6 +5,9 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import acme_regleta.entities.Historico;
+import acme_regleta.entities.Estado;
+import acme_regleta.entities.Enchufe;
 import acme_regleta.entities.Dispositivo;
 import acme_regleta.entities.Usuario;
 import io.vertx.core.AbstractVerticle;
@@ -68,24 +71,25 @@ public class ResServerRegleta extends AbstractVerticle{
 				.handler(this::handlerUsr);
 		router.get("/usr/:usr/dispositivo/:dispo/info")
 				.handler(this::handlerDisp);
-		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench")
+		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/info")
 				.handler(this::handlerEnch);
-		router.put("/usr/:usr/dispositivo/:dispo/enchufe/:ench/estado")
+		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/estado")
 				.handler(this::handlerEstado);
-		router.put("/usr/:usr/dispositivo/:dispo/enchufe/:ench/historico")
+		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/historico")
 				.handler(this::handlerHistorico);
-		//Al pasarle una ruta con mas de un parametro, si coge el ultimo, descarta el resto
 		
 	}
 	
 	private void handlerUsr(RoutingContext routingContext) {
-		//Tengo el usuario que quiero conocer la info
+		//Consigo el parametro que me interesa de la url
 		String paramStr = routingContext.pathParam("usr"); 
 		
-				//Creo una conexion con la ddbb
+		//Creo la conexion con la base de datos
 		mySQLClient.getConnection(connection ->{
 			if(connection.succeeded()) {
-				connection.result().query("SELECT * FROM usuario WHERE aliasUsuario = '" + paramStr +"'", result ->{		//result -> resultado de la conexion
+				//Realizo la consulta a la base de datos
+				connection.result().query("SELECT * FROM usuario WHERE aliasUsuario = '" + paramStr +"'", result ->{ 
+				//Resultado de la peticion
 				if(result.succeeded()) {											
 					//Procesamiento de datos
 					Gson gson = new Gson();
@@ -97,8 +101,7 @@ public class ResServerRegleta extends AbstractVerticle{
 						//Convertimos de jsonObject a object.
 					}
 					
-					routingContext.response().end(gson.toJson(usuario));
-					
+					routingContext.response().end(gson.toJson(usuario));	
 					
 				}else {
 					System.out.println(result.cause().getMessage());
@@ -117,130 +120,181 @@ public class ResServerRegleta extends AbstractVerticle{
 	}
 	
 	private void handlerDisp(RoutingContext routingContext) {
-		//Tengo el dispositivo que quiero conocer la info
-				String paramUs = routingContext.pathParam("usr");
-				String paramDis = routingContext.pathParam("dispo"); 
+		//Obtengo los parametros que necesito de la base de datos
+		String paramUs = routingContext.pathParam("usr");
+		String paramDis = routingContext.pathParam("dispo"); 
 				
-				//Creo una conexion con la ddbb
-						mySQLClient.getConnection(connection ->{
-							if(connection.succeeded()) {
-								//Realizo la consulta a la base de datos.
-								/*
-								 * Dame la informacion del dispositivo x que tiene como usuario asignado el y.
-								 */
-								connection.result().query(
-										"SELECT dispositivo.idDispositivo, aliasDisp " + 
-										"FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
-										"				  INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario"
-										+ "			 where usuario.aliasUsuario = '"+ paramUs +"' and aliasDisp = '"+ paramDis +"';", result ->{		//result -> resultado de la conexion
-									if(result.succeeded()) {								
-										//Procesamiento de datos
-										Gson gson = new Gson();
-										List<Dispositivo> dispositivo= new ArrayList<>();
+		//Creo una conexion con la ddbb
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				connection.result().query(
+						//Realizo la peticion a la base de datos
+						"SELECT dispositivo.idDispositivo, aliasDisp " + 
+						"FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+						"				  INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario"
+						+ "			 where usuario.aliasUsuario = '"+ paramUs +"' and aliasDisp = '"+ paramDis +"';", result ->{		//result -> resultado de la conexion
+							if(result.succeeded()) {								
+								//Procesamiento de datos recibidos
+								Gson gson = new Gson();
+								List<Dispositivo> dispositivo= new ArrayList<>();
+								
+								//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+								for (JsonObject json : result.result().getRows()) {
+									dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
+									//Convertimos de jsonObject a object.
+								}
 										
-										//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
-										for (JsonObject json : result.result().getRows()) {
-											dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
-											//Convertimos de jsonObject a object.
-										}
-										
-										routingContext.response().end(gson.toJson(dispositivo));
-										
-									}else {
-										System.out.println(result.cause().getMessage());
-										routingContext
-											.response()
-												.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
-													.end();
-									}
-								});
+								routingContext.response().end(gson.toJson(dispositivo));
 								
 							}else {
-								System.out.println(connection.cause().getMessage());
+								System.out.println(result.cause().getMessage());
+								routingContext
+								.response()
+								.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+								.end();
 							}
 						});
-	}
-	
-	private void handlerEnch(RoutingContext routingContext) {
+				
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}	
 		
+	private void handlerEnch(RoutingContext routingContext) {
+		//Obtengo los parametros de la url que necesito
+		String paramUs = routingContext.pathParam("usr");
+		String paramDis = routingContext.pathParam("dispo");
+		String paramEnch = routingContext.pathParam("ench");
+		
+		//Creo una conexion con la ddbb
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				connection.result().query(
+						//Realizo la peticion a la base de datos
+						"SELECT enchufe.idEnchufe, enchufe.aliasEnchufe" + 
+						"	FROM enchufe where enchufe.aliasEnchufe = '"+ paramEnch +"' and enchufe.idDispositivo = (SELECT dispositivo.idDispositivo" + 
+						"		FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+						"						 INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario "
+						+ "								where usuario.aliasUsuario = '"+ paramUs + "' and aliasDisp = '" + paramDis + "');", result ->{		//result -> resultado de la conexion
+							if(result.succeeded()) {								
+								//Procesamiento de datos
+								Gson gson = new Gson();
+								List<Enchufe> enchufe= new ArrayList<>();
+								
+								//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+								for (JsonObject json : result.result().getRows()) {
+									enchufe.add(gson.fromJson(json.encode(), Enchufe.class));
+									//Convertimos de jsonObject a object.
+								}
+								
+								routingContext.response().end(gson.toJson(enchufe));
+								
+							}else {
+								System.out.println(result.cause().getMessage());
+								routingContext
+								.response()
+								.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+								.end();
+							}	
+						});	
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
 	}
 	
 	private void handlerEstado(RoutingContext routingContext) {
+		//Obtengo los parámetros que necesito de la url
+		String paramUs = routingContext.pathParam("usr");
+		String paramDis = routingContext.pathParam("dispo");
+		String paramEnch = routingContext.pathParam("ench");
 		
+		//Creo una conexion con la ddbb
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				connection.result().query(
+						//Realizo la peticion a la base de datos
+						"SELECT *" + 
+						"	FROM estado where estado.idEnchufe = any (select enchufe.idEnchufe" + 
+						"		FROM enchufe where enchufe.aliasEnchufe = '"+ paramEnch + "' and enchufe.idDispositivo = (SELECT dispositivo.idDispositivo " + 
+						"			FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo " + 
+						"							 INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario "
+						+ "								where usuario.aliasUsuario = '"+ paramUs + "' and aliasDisp = '"+ paramDis + "'));", result ->{		//result -> resultado de la conexion
+							if(result.succeeded()) {								
+								//Procesamiento de datos
+								Gson gson = new Gson();
+								List<Estado> estado= new ArrayList<>();
+								
+								//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+								for (JsonObject json : result.result().getRows()) {
+									estado.add(gson.fromJson(json.encode(), Estado.class));
+									//Convertimos de jsonObject a object.
+								}
+								
+								routingContext.response().end(gson.toJson(estado));
+								
+							}else {
+								System.out.println(result.cause().getMessage());
+								routingContext
+									.response()
+										.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+											.end();
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
 	}
 	
 	private void handlerHistorico(RoutingContext routingContext) {
-		
+		//Obtengo los parametros que necesito de la url
+		String paramUs = routingContext.pathParam("usr");
+		String paramDis = routingContext.pathParam("dispo");
+		String paramEnch = routingContext.pathParam("ench");
+				
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+				//Realizo la peticion a la base de datos
+				"SELECT idhistorico, consumo, fecha" + 
+				"	FROM historico where historico.idEnchufe = any (select enchufe.idEnchufe" + 
+				"		FROM enchufe where enchufe.aliasEnchufe = '" + paramEnch + "' and enchufe.idDispositivo = (SELECT dispositivo.idDispositivo" + 
+				"		FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+				"						 INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario "
+				+ "									where usuario.aliasUsuario = '" + paramUs + "' and aliasDisp = '"+ paramDis +"'));", result ->{		//result -> resultado de la conexion						
+				
+					if(result.succeeded()) {								
+						//Procesamiento de datos
+						Gson gson = new Gson();
+						List<Historico> historico= new ArrayList<>();
+						
+						//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+						for (JsonObject json : result.result().getRows()) {
+							historico.add(gson.fromJson(json.encode(), Historico.class));
+							//Convertimos de jsonObject a object.
+						}
+			
+						routingContext.response().end(gson.toJson(historico));
+										
+					}else {
+						System.out.println(result.cause().getMessage());
+						routingContext
+							.response()
+								.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+									.end();
+					}
+				});
+				
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});				
 	}
 	
-	
-	
-	//Implementacion de la funcion. Necesita una estructura-> No devuelve nada y recibe por parametro un RoutingContext
-	
-	/*
-	 * CASOS DE EJEMPLO
-	 * 
-	 * 
-	 * private void handlerProduct(RoutingContext routingContext) { //Obtenemos el
-	 * valor del parametro productID String paramStr =
-	 * routingContext.pathParam("productID"); //Devuelve siempre como string (si lo
-	 * necesitamos, lo parseamos) int paramInt = Integer.parseInt(paramStr);
-	 * //Cuidado con las funciones parse, pasarlo mejor con un try/catch
-	 * 
-	 * JsonObject jsonObject = new JsonObject(); jsonObject.put("serial",
-	 * "aisubfafs") .put("id", paramInt) .put("name", "TV Samsung");
-	 * 
-	 * routingContext.response() //Respuesta .putHeader("content-type",
-	 * "application/json") .end(jsonObject.encode());
-	 * 
-	 * 
-	 * }
-	 * 
-	 * private void handlerProductProperty(RoutingContext routingContext) {
-	 * //Obtenemos el valor del parametro productID String paramStr =
-	 * routingContext.pathParam("productID"); //Devuelve siempre como string (si lo
-	 * necesitamos, lo parseamos) int paramInt = Integer.parseInt(paramStr);
-	 * //Cuidado con las funciones parse, pasarlo mejor con un try/catch
-	 * 
-	 * JsonObject jsonObject = routingContext.getBodyAsJson(); //obtenemos el valor
-	 * que nos pasa el cliente, ya que es un put
-	 * 
-	 * //Faltaría implementacion con base de datos.
-	 * 
-	 * routingContext.response() //Respuesta .putHeader("content-type",
-	 * "application/json") .end(jsonObject.encode()); //Respondemos con lo mismo que
-	 * nos ha enviado el cliente.
-	 * 
-	 * }
-	 * 
-	 * private void handlerAllSensors(RoutingContext routingContext) {
-	 * 
-	 * //Creo una conexion con la ddbb mySQLClient.getConnection(connection ->{
-	 * if(connection.succeeded()) { // connection.result().query(sql, resultHandler)
-	 * // connection.result().commit(handler) // connection.result().close();
-	 * 
-	 * connection.result().query("SELECT * FROM sensor", result ->{ //result ->
-	 * resultado de la conexion if(result.succeeded()) { //
-	 * result.result().getColumnNames(); // result.result().getNext(); //Nos sirve
-	 * para iterar de resultado en resultado. // result.result().getNumColumns(); //
-	 * result.result().getNumRows(); // result.result().getResults(); //Nos devuelve
-	 * una lista de JSON Object, que podriamos recorrerlo con java8. //
-	 * result.result().toJson().encodePrettily(); //Obtenemos el resultado completo
-	 * en formato JSON
-	 * 
-	 * routingContext .response() .end(result.result().toJson().encodePrettily());
-	 * //Enviamos a nuestro cliente el resultado de la consulta.
-	 * 
-	 * }else { System.out.println(result.cause().getMessage()); //Aqui le tenemos
-	 * que mandar una respuesta al cliente. routingContext .response()
-	 * .setStatusCode(400) //Le indicamos al cliente que ha habido un error 400
-	 * .end(); } });
-	 * 
-	 * }else { System.out.println(connection.cause().getMessage()); } });
-	 * 
-	 * 
-	 * 
-	 * //Comprobar el estado de la conexion //Lanzar la consulta a la ddbb }
-	 */
-
 }
+	
