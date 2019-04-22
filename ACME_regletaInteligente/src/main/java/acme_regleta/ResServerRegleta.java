@@ -64,13 +64,18 @@ public class ResServerRegleta extends AbstractVerticle{
 		router.route().handler(BodyHandler.create());	//Crea un cuerpo de peticiones y despliega el router.
 		
 		//A continuacion definimos las funciones que vamos a usar
-//		router.get("")	//Definimos un get de API REST, donde pasamos por parametro la ruta para esa petición
+		//router.get("")	//Definimos un get de API REST, donde pasamos por parametro la ruta para esa petición
 		//Para el uso de variables se le añade -> : <- para decirle a vertx que no es texto.
 		//Le decimos que para cuando reciba una peticion por esa ruta, la encamine por el handler que voy a definir a continuacion
+		
 		router.get("/usr/:usr/info")
 				.handler(this::handlerUsr);
 		router.get("/usr/:usr/dispositivo/:dispo/info")
 				.handler(this::handlerDisp);
+		router.get("/usr/:usr/dispositivo/all")
+				.handler(this::handlerAllDisp);
+		router.get("/usr/:usr/dispositivo/:dispo/enchufe/all")
+				.handler(this::handlerAllEnch);
 		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/info")
 				.handler(this::handlerEnch);
 		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/estado")
@@ -78,11 +83,30 @@ public class ResServerRegleta extends AbstractVerticle{
 		router.get("/usr/:usr/dispositivo/:dispo/enchufe/:ench/historico")
 				.handler(this::handlerHistorico);
 		
+		/*
+		 * Informacion de las URL para las peticiones GET:
+		 	- /usr/:usr/info : Nos devuelve la informacion del usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/info : Nos devuelve la informacion del dispositivo dispo si está asociado al usuario usr
+		 	- /usr/:usr/dispositivo/all : Nos devuelve la informacion de todos los dispositivos asociados al usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/enchufe/all : Nos devuelve la informacion de todos los enchufes del dispositivo dispo asociados al usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/enchufe/:ench/info : Nos devuelve la informacion del enchufe ench del dispositivo dispo asociados al usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/enchufe/:ench/estado : Nos devuelve el estado del enchufe ench del dispositivo dispo asociados al usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/enchufe/:ench/historico : Nos devuelve el historico del enchufe ench del dispositivo dispo asociados al usuario usr
+		 */
+		
 	}
 	
+	
+	//Funciones para las peticiones GET:
+	 
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/info
+	 * @return La informacion del usuario usr
+	 * @param routingContext
+	 */
 	private void handlerUsr(RoutingContext routingContext) {
 		//Consigo el parametro que me interesa de la url
-		String paramStr = routingContext.pathParam("usr"); 
+		String paramStr = routingContext.pathParam("usr");
 		
 		//Creo la conexion con la base de datos
 		mySQLClient.getConnection(connection ->{
@@ -119,11 +143,16 @@ public class ResServerRegleta extends AbstractVerticle{
 
 	}
 	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/info
+	 * @return La informacion del dispositivo dispo si está asociado al usuario usr
+	 * @param routingContext
+	 */
 	private void handlerDisp(RoutingContext routingContext) {
 		//Obtengo los parametros que necesito de la base de datos
 		String paramUs = routingContext.pathParam("usr");
 		String paramDis = routingContext.pathParam("dispo"); 
-				
+		
 		//Creo una conexion con la ddbb
 		mySQLClient.getConnection(connection ->{
 			if(connection.succeeded()) {
@@ -160,7 +189,103 @@ public class ResServerRegleta extends AbstractVerticle{
 			}
 		});
 	}	
+	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/all
+	 * @return La informacion de todos los dispositivos asociados al usuario usr
+	 * @param routingContext
+	 */
+	private void handlerAllDisp(RoutingContext routingContext) {
+		//Obtengo los parametros de la url que necesito
+		String paramUs = routingContext.pathParam("usr");
+		//Creo una conexion con la ddbb
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				connection.result().query(
+						//Realizo la peticion a la base de datos
+						"SELECT dispositivo.idDispositivo, aliasDisp\r\n" + 
+						"	FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo\r\n" + 
+						"				     INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario where usuario.aliasUsuario = '"+ paramUs +"';", result ->{		//result -> resultado de la conexion
+							if(result.succeeded()) {								
+								//Procesamiento de datos recibidos
+								Gson gson = new Gson();
+								List<Dispositivo> dispositivo= new ArrayList<>();
+								
+								//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+								for (JsonObject json : result.result().getRows()) {
+									dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
+									//Convertimos de jsonObject a object.
+								}
+								
+								routingContext.response().end(gson.toJson(dispositivo));
+								
+							}else {
+								System.out.println(result.cause().getMessage());
+								routingContext
+								.response()
+								.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+								.end();
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}
+	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/enchufe/all
+	 * @return La informacion de todos los enchufes del dispositivo dispo asociados al usuario usr
+	 * @param routingContext
+	 */
+	private void handlerAllEnch(RoutingContext routingContext) {
+		//Obtengo los parametros de la url que necesito
+		String paramUs = routingContext.pathParam("usr");
+		String paramDis = routingContext.pathParam("dispo");
 		
+		//Creo una conexion con la ddbb
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				connection.result().query(
+						//Realizo la peticion a la base de datos
+						"SELECT enchufe.idEnchufe, enchufe.aliasEnchufe" + 
+						"		FROM enchufe where enchufe.idDispositivo = (SELECT dispositivo.idDispositivo" + 
+						"			FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+						"							 INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario where usuario.aliasUsuario = '"+ paramUs +"' and aliasDisp = '"+ paramDis +"');", result ->{		//result -> resultado de la conexion
+							if(result.succeeded()) {								
+								//Procesamiento de datos
+								Gson gson = new Gson();
+								List<Enchufe> enchufe= new ArrayList<>();
+								
+								//Iteramos cada objeto, lo convertimos a Usuario y lo añadimos a la lista.
+								for (JsonObject json : result.result().getRows()) {
+									enchufe.add(gson.fromJson(json.encode(), Enchufe.class));
+									//Convertimos de jsonObject a object.
+								}
+								
+								routingContext.response().end(gson.toJson(enchufe));
+								
+							}else {
+								System.out.println(result.cause().getMessage());
+								routingContext
+								.response()
+								.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+								.end();
+							}	
+						});	
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});	
+	}
+	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/enchufe/:ench/info
+	 * @return La informacion del enchufe ench del dispositivo dispo asociados al usuario usr
+	 * @param routingContext
+	 */
 	private void handlerEnch(RoutingContext routingContext) {
 		//Obtengo los parametros de la url que necesito
 		String paramUs = routingContext.pathParam("usr");
@@ -205,6 +330,11 @@ public class ResServerRegleta extends AbstractVerticle{
 		});
 	}
 	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/enchufe/:ench/estado
+	 * @return El estado del enchufe ench del dispositivo dispo asociados al usuario usr
+	 * @param routingContext
+	 */
 	private void handlerEstado(RoutingContext routingContext) {
 		//Obtengo los parámetros que necesito de la url
 		String paramUs = routingContext.pathParam("usr");
@@ -250,6 +380,11 @@ public class ResServerRegleta extends AbstractVerticle{
 		});
 	}
 	
+	/**
+	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/enchufe/:ench/historico
+	 * @return El historico del enchufe ench del dispositivo dispo asociados al usuario usr
+	 * @param routingContext
+	 */
 	private void handlerHistorico(RoutingContext routingContext) {
 		//Obtengo los parametros que necesito de la url
 		String paramUs = routingContext.pathParam("usr");
@@ -297,4 +432,3 @@ public class ResServerRegleta extends AbstractVerticle{
 	}
 	
 }
-	
