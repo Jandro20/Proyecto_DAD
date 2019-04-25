@@ -26,7 +26,7 @@ public class Main extends AbstractVerticle { // Es un verticle
 		//SERVIDOR TCP PARA USO DE API REST:->
 		
 		//MQTT
-		//vertx.deployVerticle(new MqttExample());
+		//vertx.deployVerticle(new Mqtt());
 		
 		/*
 		vertx

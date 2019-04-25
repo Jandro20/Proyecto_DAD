@@ -64,6 +64,7 @@ public class ResServerRegleta extends AbstractVerticle{
 		router.route().handler(BodyHandler.create());	//Crea un cuerpo de peticiones y despliega el router.
 		
 		//A continuacion definimos las funciones que vamos a usar
+		
 		//router.get("")	//Definimos un get de API REST, donde pasamos por parametro la ruta para esa petición
 		//Para el uso de variables se le añade -> : <- para decirle a vertx que no es texto.
 		//Le decimos que para cuando reciba una peticion por esa ruta, la encamine por el handler que voy a definir a continuacion
@@ -94,6 +95,28 @@ public class ResServerRegleta extends AbstractVerticle{
 		 	- /usr/:usr/dispositivo/:dispo/enchufe/:ench/historico : Nos devuelve el historico del enchufe ench del dispositivo dispo asociados al usuario usr
 		 */
 		
+		// Peticiones PUT:
+		
+		router.put("/put/usr")	
+				.handler(this::handlerPUsr);
+		router.put("/put/disp")
+				.handler(this::handlerPDisp);
+		router.put("/put/relacionUD")
+				.handler(this::handlerUD);
+		router.put("/put/estado")
+				.handler(this::handlerPEstado);
+		router.put("/put/historico")
+				.handler(this::handlerPHistorico);
+		
+		/*
+		 *	Informacion de las URL para las peticiones PUT:
+		 	- /put/usr : Nos permite añadir un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
+		 	- /put/disp : Nos permite añadir un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
+		 	- /put/estado : Nos permite añadir un estado nuevo, pasandole como JSON los campos: {aliasDispositivo, aliasEnchufe, estado_enchufe}.
+		 	- /put/historico : Nos permite añadir un nuevo historico al enchufe "aliasEnchufe", 
+		 			del dispositivo "aliasDispositivo", con el consumo "consumo". Pasandole como parametros: {aliasDispositivo, aliasEnchufe, consumo}
+		 */
+		
 	}
 	
 	
@@ -112,7 +135,8 @@ public class ResServerRegleta extends AbstractVerticle{
 		mySQLClient.getConnection(connection ->{
 			if(connection.succeeded()) {
 				//Realizo la consulta a la base de datos
-				connection.result().query("SELECT * FROM usuario WHERE aliasUsuario = '" + paramStr +"'", result ->{ 
+				connection.result().query(
+						"SELECT * FROM usuario WHERE aliasUsuario = '" + paramStr +"'", result ->{ 
 				//Resultado de la peticion
 				if(result.succeeded()) {											
 					//Procesamiento de datos
@@ -159,7 +183,7 @@ public class ResServerRegleta extends AbstractVerticle{
 				connection.result().query(
 						//Realizo la peticion a la base de datos
 						"SELECT dispositivo.idDispositivo, aliasDisp " + 
-						"FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
+						"	FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
 						"				  INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario"
 						+ "			 where usuario.aliasUsuario = '"+ paramUs +"' and aliasDisp = '"+ paramDis +"';", result ->{		//result -> resultado de la conexion
 							if(result.succeeded()) {								
@@ -203,8 +227,8 @@ public class ResServerRegleta extends AbstractVerticle{
 			if(connection.succeeded()) {
 				connection.result().query(
 						//Realizo la peticion a la base de datos
-						"SELECT dispositivo.idDispositivo, aliasDisp\r\n" + 
-						"	FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo\r\n" + 
+						"SELECT dispositivo.idDispositivo, aliasDisp" + 
+						"	FROM dispositivo INNER JOIN relacionuserdisp ON dispositivo.idDispositivo = relacionuserdisp.idDispositivo" + 
 						"				     INNER JOIN usuario ON relacionuserdisp.idUsuario = usuario.idUsuario where usuario.aliasUsuario = '"+ paramUs +"';", result ->{		//result -> resultado de la conexion
 							if(result.succeeded()) {								
 								//Procesamiento de datos recibidos
@@ -431,4 +455,286 @@ public class ResServerRegleta extends AbstractVerticle{
 		});				
 	}
 	
+	/**
+	 *	Funcion para la peticion PUT: /put/usr
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/put/usr
+	 		Body:
+	 			{
+					"aliasUsuario" : "nombre",
+					"correo" : "correo_nombre",
+					"contrasena" : "contra_nombre"
+				}
+	 * @param routingContext
+	 */
+	private void handlerPUsr(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramUsuario = json.getString("aliasUsuario");
+		String paramCorreo = json.getString("correo");
+		String paramContrasena = json.getString("contrasena");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la insercion en la base de datos.
+						"INSERT INTO usuario ( idUsuario, aliasUsuario, correo, contrasena )" + 
+						"   VALUES" + 
+						"   	(null , '"+paramUsuario+"', '"+paramCorreo+"', '"+paramContrasena+"');", result ->{						
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});				
+	
+	}
+
+	/**
+	 *	Funcion para la peticion PUT: /put/disp
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/put/disp
+	 		Body:
+	 			{
+					"aliasDisp" : "nombre"
+				}
+	 * @param routingContext
+	 */
+	private void handlerPDisp(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAlias = json.getString("aliasDisp");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la insercion en la base de datos.
+						"INSERT INTO dispositivo (idDispositivo, aliasDisp)" + 
+						"   VALUES" + 
+						"   	(null , '"+paramAlias+"');", result ->{						
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});				
+	
+	}
+	
+	/**
+	 *	Funcion para la peticion PUT: /put/estado
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/put/estado
+	 		Body:
+	 			{
+	 				"aliasDispositivo : "nombre",
+					"aliasEnchufe" : "nombre",
+					"estado_enchufe" : 0 ó 1
+				}
+				
+		**Los parametros idEstado, idEnchufe y fecha lo precalculamos
+		*	a la hora de hacer la inserción de los datos.
+		*TODO: Fecha no lo hace correctamente.
+	 * @param routingContext
+	 */
+	private void handlerPEstado(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasDisp = json.getString("aliasDispositivo");
+		String paramAliasEnch = json.getString("aliasEnchufe");
+		Integer paramEstado = json.getInteger("estado_enchufe");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la insercion en la base de datos.
+						"INSERT INTO estado (idEstado, idEnchufe, estado_enchufe, fecha) " + 
+						"VALUES" + 
+						"	(null , " + 
+						"		(select idEnchufe from enchufe where enchufe.aliasEnchufe = '"+ paramAliasEnch + "' " + 
+						"			and enchufe.idDispositivo = (select idDispositivo from dispositivo where aliasDisp = '" + paramAliasDisp + "' ))," + 
+						"				" + paramEstado + ", "+ System.currentTimeMillis()/1000 +");	", result ->{
+						 
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});				
+	
+	}
+	
+
+	/**
+	 *	Funcion para la peticion PUT: /put/historico
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/put/historico
+	 		Body:
+	 			{
+	 				"aliasDispositivo : "nombre",
+					"aliasEnchufe" : "nombre",
+					"consumo" : double
+					
+				}
+				
+		**Los parametros idEstado, idEnchufe y fecha lo precalculamos
+		*	a la hora de hacer la inserción de los datos.
+	 * @param routingContext
+	 */
+	private void handlerPHistorico(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasDisp = json.getString("aliasDispositivo");
+		String paramAliasEnch = json.getString("aliasEnchufe");
+		Integer paramConsumo = json.getInteger("consumo");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la insercion en la base de datos.
+						"INSERT INTO historico (idhistorico, idEnchufe, consumo, fecha)" + 
+						"	VALUES " + 
+						"		(null, " + 
+						"			(select idEnchufe from enchufe where enchufe.aliasEnchufe = '" + paramAliasEnch +"' " + 
+						"					and enchufe.idDispositivo = (select idDispositivo from dispositivo where aliasDisp = '" + paramAliasDisp+ "' ))" + 
+						"				," + paramConsumo + " " + 
+						"					, "+ System.currentTimeMillis()/1000 +");", result ->{
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});				
+	
+	}
+	
+	/**
+	 *	Funcion para la peticion PUT: /put/relacionUD
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/put/relacionUD
+	 		Body:
+	 			{
+	 				"aliasUsuario : "nombre",
+					"aliasDispositivo" : "nombre"
+				}
+				
+	 * @param routingContext
+	 */
+	private void handlerUD(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasUsuario = json.getString("aliasUsuario");
+		String paramAliasDisp = json.getString("aliasDispositivo");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la insercion en la base de datos.
+						"insert into relacionuserdisp (idDispositivo, idUsuario, idRelacion)" + 
+						" values " + 
+						"		((select idDispositivo from dispositivo where aliasDisp = '" + paramAliasDisp + "')," + 
+						"			(select idUsuario from usuario where aliasUsuario = '" + paramAliasUsuario+ "')," + 
+						"				null);", result ->{
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}
+
 }
