@@ -112,6 +112,7 @@ public class ResServerRegleta extends AbstractVerticle{
 		 *	Informacion de las URL para las peticiones PUT:
 		 	- /put/usr : Nos permite añadir un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
 		 	- /put/disp : Nos permite añadir un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
+		 	- /put/relacionUD: Nos permite establecer la relacion usuario-dispositivo, pasandole como JSON: {aliasusuario, aliasDisp}
 		 	- /put/estado : Nos permite añadir un estado nuevo, pasandole como JSON los campos: {aliasDispositivo, aliasEnchufe, estado_enchufe}.
 		 	- /put/historico : Nos permite añadir un nuevo historico al enchufe "aliasEnchufe", 
 		 			del dispositivo "aliasDispositivo", con el consumo "consumo". Pasandole como parametros: {aliasDispositivo, aliasEnchufe, consumo}

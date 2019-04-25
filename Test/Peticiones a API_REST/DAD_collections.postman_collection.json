@@ -1,0 +1,187 @@
+{
+	"info": {
+		"_postman_id": "743e1e30-54b8-4408-89eb-c7a15f301791",
+		"name": "DAD_collections",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "PUT",
+			"item": [
+				{
+					"name": "localhost:8090/put/usr",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "cb85531d-aaf5-4d2b-a37d-bd9aceb67053",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasUsuario\" : \"Miguel\",\n\t\"correo\" : \"correo_miguel\",\n\t\"contrasena\" : \"contra_miguel\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/put/usr",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"put",
+								"usr"
+							]
+						},
+						"description": "Request para probar la funcion para la peicion put para añadir un usuario."
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/put/disp",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasDisp\" : \"disp_03\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/put/disp",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"put",
+								"disp"
+							]
+						},
+						"description": "Peticion PUT para la funcion handlerPDisp. Solo le tenemos que pasar como parametro el alias del dispositivo a añadir."
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/put/relacionUD",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasUsuario\" : \"ale\",\n\t\"aliasDispositivo\" : \"disp_02\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/put/relacionUD",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"put",
+								"relacionUD"
+							]
+						},
+						"description": "Crea una relacion Usuario - Dispositivo. Necesita los parametros en formato JSON:\n\t- aliasUsuario\n\t- aliasDispositivo"
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/put/estado",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasDispositivo\" : \"disp_01\",\n\t\"aliasEnchufe\" : \"ench_01\",\n\t\"estado_enchufe\" : 1\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/put/estado",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"put",
+								"estado"
+							]
+						},
+						"description": "Añade un estado a la base de datos, pasandole los siguientes parametros con formato JSON:\n\t- aliasDispositivo\n\t- aliasEnchufe\n\t- estado_enchufe"
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/put/historico",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasDispositivo\" : \"disp_02\",\n\t\"aliasEnchufe\" : \"ench_02\",\n\t\"consumo\" : 50\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/put/historico",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"put",
+								"historico"
+							]
+						},
+						"description": "Añade un registro de consumo a la base de datos, pasandole como parametro los siguientes campos como JSON:\n\t- aliasDispositivo\n\t- aliasEnchufe\n\t- consumo"
+					},
+					"response": []
+				}
+			],
+			"description": "Todos los put que necesitamos para el proyecto de DAD"
+		},
+		{
+			"name": "GET",
+			"item": [],
+			"description": "Todas las peticiones GET para el proyecto de la asignatura de DAD"
+		}
+	]
+}
