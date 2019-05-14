@@ -132,7 +132,7 @@ public class ResServerRegleta extends AbstractVerticle{
 		 *	Informacion de las URL para las peticiones DELETE:
 		 	- /delete/usr : Nos permite eliminar un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
 		 	- /delete/disp : Nos permite eliminar un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
-		 	- /delete/relacionUD: Nos permite eliminar la relacion usuario-dispositivo, pasandole como JSON: {aliasusuario, aliasDisp}
+		 	- /delete/relacionUD: Nos permite eliminar la relacion usuario-dispositivo, pasandole como JSON : {aliasusuario, aliasDisp}
 		 */
 		
 	}
