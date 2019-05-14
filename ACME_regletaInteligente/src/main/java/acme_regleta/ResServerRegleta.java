@@ -118,6 +118,23 @@ public class ResServerRegleta extends AbstractVerticle{
 		 			del dispositivo "aliasDispositivo", con el consumo "consumo". Pasandole como parametros: {aliasDispositivo, aliasEnchufe, consumo}
 		 */
 		
+		
+		//Peticiones DELETE:
+		
+		router.delete("/delete/usr")
+				.handler(this::handlerDUsr);
+		router.delete("/delete/disp")
+				.handler(this::handlerDDisp);
+		router.delete("/delete/relacionUD")
+				.handler(this::handlerDUD);
+		
+		/*
+		 *	Informacion de las URL para las peticiones DELETE:
+		 	- /delete/usr : Nos permite eliminar un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
+		 	- /delete/disp : Nos permite eliminar un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
+		 	- /delete/relacionUD: Nos permite eliminar la relacion usuario-dispositivo, pasandole como JSON: {aliasusuario, aliasDisp}
+		 */
+		
 	}
 	
 	
@@ -621,7 +638,6 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	}
 	
-
 	/**
 	 *	Funcion para la peticion PUT: /put/historico
 	 	Para ello, en POSTMAN, realizar la petición: 
@@ -710,10 +726,10 @@ public class ResServerRegleta extends AbstractVerticle{
 				connection.result().query(
 						//Realizo la insercion en la base de datos.
 						"insert into relacionuserdisp (idDispositivo, idUsuario, idRelacion)" + 
-						" values " + 
+						"values" + 
 						"		((select idDispositivo from dispositivo where aliasDisp = '" + paramAliasDisp + "')," + 
-						"			(select idUsuario from usuario where aliasUsuario = '" + paramAliasUsuario+ "')," + 
-						"				null);", result ->{
+						"			(select idUsuario from usuario where aliasUsuario = '" + paramAliasUsuario + "')," + 
+						"				null)", result ->{
 						
 							if(result.succeeded()) {
 								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
@@ -738,4 +754,149 @@ public class ResServerRegleta extends AbstractVerticle{
 		});
 	}
 
+	/**
+	 *	Funcion para la peticion DELETE: /delete/usr
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/delete/usr
+	 		Body:
+	 			{
+					"aliasUsuario" : "nombre"
+				}
+	 * @param routingContext
+	 */
+	private void handlerDUsr(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasUsuario = json.getString("aliasUsuario");
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la eliminacion en la base de datos.
+						"DELETE FROM usuario where aliasUsuario = '"+ paramAliasUsuario + "';", result ->{
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}
+	
+	/**
+	 *	Funcion para la peticion DELETE: /delete/disp
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/delete/disp
+	 		Body:
+	 			{
+					"aliasDisp" : "nombre"
+				}
+				
+	 * @param routingContext
+	 */
+	private void handlerDDisp(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasDisp = json.getString("aliasDispositivo");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la peticion en la base de datos.
+						"DELETE FROM dispositivo where aliasDisp = '" + paramAliasDisp + "';", result ->{
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}
+	
+	/**
+	 *	Funcion para la peticion DELETE: /delete/relacionUD
+	 	Para ello, en POSTMAN, realizar la petición: 
+	 		localhost:8090/delete/relacionUD
+	 		Body:
+	 			{
+	 				"aliasUsuario : "nombre",
+					"aliasDispositivo" : "nombre"
+				}
+				
+	 * @param routingContext
+	 */
+	private void handlerDUD(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petición PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAliasUsuario = json.getString("aliasUsuario");
+		String paramAliasDisp = json.getString("aliasDispositivo");
+		
+		mySQLClient.getConnection(connection ->{
+			if(connection.succeeded()) {
+				//Realizo la consulta a la base de datos.
+				connection.result().query(
+						//Realizo la peticion en la base de datos.
+						"DELETE FROM relacionuserdisp where "
+						+ "			idDispositivo = (select idDispositivo from dispositivo where aliasDisp = '" + paramAliasDisp + "')" + 
+						"			and idUsuario = (select idUsuario from usuario where aliasUsuario = '" + paramAliasUsuario + "');", result ->{
+						
+							if(result.succeeded()) {
+								//Si la peticion es correcta, le devuelvo al cliente los datos que nos ha pasado.
+								routingContext.response()
+									.setStatusCode(201)
+										.putHeader("content-type", "application/json; charset=utf-8")
+											.end(json.encode());
+								
+							}else {								
+								System.out.println(result.cause().getMessage());
+									routingContext
+										.response()
+											.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+												.end();
+													
+							}
+						});
+						
+			}else {
+				System.out.println(connection.cause().getMessage());
+			}
+		});
+	}
 }

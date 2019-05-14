@@ -1,10 +1,10 @@
 package acme_regleta;
 
 import java.util.ArrayList;
-import java.util.Calendar;
+//import java.util.Calendar;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+//import java.util.Timer;
+//import java.util.TimerTask;
 import java.util.stream.Stream;
 
 import com.google.common.collect.HashMultimap;
@@ -14,7 +14,7 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
+//import io.vertx.core.buffer.Buffer;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttEndpoint;
@@ -23,12 +23,20 @@ import io.vertx.mqtt.MqttTopicSubscription;
 import io.vertx.mqtt.messages.MqttPublishMessage;
 
 public class Mqtt extends AbstractVerticle{
+	
+	static int MQTT_PORT = 1883;
+	static String canal_1 = "main_channel";
 
 	private static Multimap<String, MqttEndpoint> clientTopics;
 	
 	/**
 	 * EN PROCESO
 	 * TODO: Adaptar el codigo de clase a nuestro proyecto.
+	 * TODO: https://ricveal.com/blog/primeros-pasos-mqtt/
+	 * 
+	 * - Topic principal del proyecto: main_topic.
+	 * - Principio de implementacion de la escritura de los mensajes: EXACTLY_ONCE.
+	 * - Creado variable global para la introduccion de la IP del servidor: MQTT_PORT.
 	 */
 	
 	public void start(Future<Void> startFuture) {
@@ -36,9 +44,9 @@ public class Mqtt extends AbstractVerticle{
 		// Configuramos el servidor MQTT
 		MqttServer mqttServer = MqttServer.create(vertx);
 		init(mqttServer);
-
+		
 		// Creamos un cliente de prueba para MQTT que publica mensajes cada 3 segundos
-		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
+//		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
 		//Opciones
 				//setAutoKeepAlive(true) -> Indica que aunque el cliente no interaccione con el canal, no se elimine.
 		
@@ -48,66 +56,69 @@ public class Mqtt extends AbstractVerticle{
 		 * vuestro servidor. Esta IP puede cambiar cuando os desconectáis de la red, por
 		 * lo que aseguraros siempre antes de lanzar el cliente que la IP es correcta.
 		 */
-		mqttClient.connect(1883, "localhost", s -> {
-
-			/*
-			 * Nos suscribimos al topic_2. Aquí debera indicar el nombre del topic al que os
-			 * queráis suscribir. Además, podéis indicar el QoS, en este caso AT_LEAST_ONCE
-			 * para asegurarnos de que el mensaje llega a su destinatario, aunque puede haber duplicado.
-			 */
-			mqttClient.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
-				if (handler.succeeded()) {
-					/*
-					 * En este punto el cliente ya está suscrito al servidor, puesto que se ha
-					 * ejecutado la función de handler
-					 */
-					System.out.println("Cliente " + mqttClient.clientId() + " suscrito correctamente al canal topic_2");
-				}
-			});
+//		mqttClient.connect(MQTT_PORT, "localhost", s -> {
+//
+//			/*
+//			 * Nos suscribimos al topic_2. Aquí debera indicar el nombre del topic al que os
+//			 * queráis suscribir. Además, podéis indicar el QoS, en este caso AT_LEAST_ONCE
+//			 * para asegurarnos de que el mensaje llega a su destinatario, aunque puede haber duplicado.
+//			 */
+//			mqttClient.subscribe(canal_1, MqttQoS.EXACTLY_ONCE.value(), handler -> {
+//				if (handler.succeeded()) {
+//					/*
+//					 * En este punto el cliente ya está suscrito al servidor, puesto que se ha
+//					 * ejecutado la función de handler
+//					 */
+//					System.out.println("Cliente " + mqttClient.clientId() + " suscrito correctamente al canal" + canal_1);
+//				}
+//			});
 
 			/*
 			 * Este timer simular el envío de mensajes desde el cliente 1 al servidor cada 3
 			 * segundos.
 			 */
-			new Timer().scheduleAtFixedRate(new TimerTask() {
-
-				@Override
-				public void run() {
-					/*
-					 * Publicamos un mensaje en el topic "topic_2" con el contenido "Ejemplo" y la
-					 * hora. Ajustamos el QoS para que se entregue al menos una vez. Indicamos que
-					 * el mensaje NO es un duplicado (false) y que NO debe ser retenido en el canal
-					 * (false)
-					 */
-					mqttClient.publish("topic_2",
-							Buffer.buffer("Ejemplo a las " + Calendar.getInstance().getTime().toString()),
-							MqttQoS.AT_LEAST_ONCE, false, false);
-				}
-			}, 1000, 3000);	//Espera un delay de 1 seg antes de empezar el bucle de cada 3 seg mandar.
-		});
+			///PRUEBA PARA COMPROBAR QUE EL CLIENTE FUNCIONA CORRECTAMENTE
+			//TODO: Eliminar esta prueba antes de cargar el código.
+//			new Timer().scheduleAtFixedRate(new TimerTask() {
+//
+//				@Override
+//				public void run() {
+//					/*
+//					 * Publicamos un mensaje en el topic "topic_2" con el contenido "Ejemplo" y la
+//					 * hora. Ajustamos el QoS para que se entregue al menos una vez. Indicamos que
+//					 * el mensaje NO es un duplicado (false) y que NO debe ser retenido en el canal
+//					 * (false)
+//					 */
+//					mqttClient.publish(canal_1,
+//							Buffer.buffer("Ejemplo a las " + Calendar.getInstance().getTime().toString()),
+//							MqttQoS.AT_LEAST_ONCE, false, false);
+//				}
+//			}, 1000, 3000);	//Espera un delay de 1 seg antes de empezar el bucle de cada 3 seg mandar.
+			
+//		});
 
 		/*
 		 * Ahora creamos un segundo cliente, al que se supone deben llegar todos los
-		 * mensajes que el cliente 1 desplegado anteriormente publique en el topic
-		 * "topic_2". Este era el punto en el que el proyecto anterior fallaba, debido a
+		 * mensajes que el cliente 1, desplegado anteriormente, publique en el topic
+		 * "main_topic". Este era el punto en el que el proyecto anterior fallaba, debido a
 		 * que no existía ningún broker que se encargara de realizar el envío desde el
 		 * servidor al resto de clientes.
 		 */
+		
 		MqttClient mqttClient2 = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
-		mqttClient2.connect(1883, "localhost", s -> {
+		mqttClient2.connect(MQTT_PORT, "localhost", s -> {
 
 			/*
 			 * Al igual que antes, este cliente se suscribe al topic_2 para poder recibir
 			 * los mensajes que el cliente 1 envíe a través de MQTT.
 			 */
-			mqttClient2.subscribe("topic_2", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
+			mqttClient2.subscribe("main_topic", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
 				if (handler.succeeded()) {
 					/*
 					 * En este punto, el cliente 2 también está suscrito al servidor, por lo que ya
 					 * podrá empezar a recibir los mensajes publicados en el topic.
 					 */
-					System.out.println("Cliente " + mqttClient.clientId() + " suscrito correctamente al canal topic_2");
-
+					
 					/*
 					 * Además de suscribirnos al servidor, registraremos un manejador para
 					 * interceptar los mensajes que lleguen a nuestro cliente. De manera que el
@@ -123,6 +134,9 @@ public class Mqtt extends AbstractVerticle{
 							 * Si se ejecuta este código es que el cliente 2 ha recibido un mensaje
 							 * publicado en algún topic al que estaba suscrito (en este caso, al topic_2).
 							 */
+								
+							//TODO: Procesamiento del mensaje.
+							
 							System.out.println("Mensaje recibido por el cliente 2: " + arg0.payload().toString());
 						}
 					});
@@ -320,6 +334,11 @@ public class Mqtt extends AbstractVerticle{
 			 * Se podría hacer algo con el mensaje como, por ejemplo, almacenar un registro
 			 * en la base de datos
 			 */
+			case "main_channel":
+				System.out.println("HOLA");
+				break;
+			default:
+				break;
 			}
 			// Envía el ACK al cliente de que el mensaje ha sido publicado
 			endpoint.publishAcknowledge(message.messageId());
@@ -329,6 +348,7 @@ public class Mqtt extends AbstractVerticle{
 			 * para este mensaje. Así se evita que los mensajes se publiquen por duplicado
 			 * (QoS)
 			 */
+			
 			endpoint.publishRelease(message.messageId());
 		}
 	}
