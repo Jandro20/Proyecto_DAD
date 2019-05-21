@@ -102,6 +102,9 @@ public class Mqtt extends AbstractVerticle{
 			 */
 			System.out.println("Nuevo cliente MQTT [" + endpoint.clientIdentifier()
 					+ "] solicitando suscribirse [Id de sesión: " + endpoint.isCleanSession() + "]");
+			
+			System.out.println(clientTopics.toString());
+			
 			/*
 			 * Indicamos al cliente que se ha contectado al servidor MQTT y que no tenía
 			 * sesión previamente creada (parámetro false)
@@ -251,7 +254,7 @@ public class Mqtt extends AbstractVerticle{
 		System.out.println("Mensaje publicado por el cliente " + endpoint.clientIdentifier() + " en el topic "
 				+ message.topicName());
 		System.out.println("    Contenido del mensaje: " + message.payload().toString());
-
+		System.out.println(clientTopics.toString());
 		/*
 		 * Obtenemos todos los clientes suscritos a ese topic (exceptuando el cliente
 		 * que envía el mensaje) para así poder reenviar el mensaje a cada uno de ellos.
@@ -278,7 +281,7 @@ public class Mqtt extends AbstractVerticle{
 			 * Se podría hacer algo con el mensaje como, por ejemplo, almacenar un registro
 			 * en la base de datos
 			 */
-			case canal_1:
+			case "main_topic":
 				System.out.println("HOLA");
 				break;
 			default:

@@ -181,6 +181,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 
 	}
@@ -229,6 +232,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}	
 	
@@ -273,6 +279,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 	
@@ -320,7 +329,10 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
-		});	
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
+		});			
 	}
 	
 	/**
@@ -369,6 +381,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 	
@@ -419,6 +434,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 	
@@ -470,6 +488,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});				
 	}
 	
@@ -523,6 +544,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});				
 	
 	}
@@ -573,6 +597,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});				
 	
 	}
@@ -629,11 +656,17 @@ public class ResServerRegleta extends AbstractVerticle{
 												.end();
 													
 							}
+							
+							
+							
 						});
 						
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});				
 	
 	}
@@ -696,6 +729,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});				
 	
 	}
@@ -751,6 +787,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 
@@ -797,6 +836,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 	
@@ -845,6 +887,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 	
@@ -897,6 +942,9 @@ public class ResServerRegleta extends AbstractVerticle{
 			}else {
 				System.out.println(connection.cause().getMessage());
 			}
+			
+			//Cierra la conexion con la base de datos.
+			connection.result().close();
 		});
 	}
 }
