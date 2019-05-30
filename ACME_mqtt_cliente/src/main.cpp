@@ -9,8 +9,8 @@ const char* ssid = "";
 const char* password = "";
 const char* channel_name = "main_topic";  //TOPIC
 //IP del ordenador a la hora de ejecutarlo.
-const char* mqtt_server = "192.168.1.6";
-const char* http_server = "192.168.1.6";
+const char* mqtt_server = "192.168.43.158";
+const char* http_server = "192.168.43.158";
 const char* http_server_port = "8090";
 String clientId;
 
@@ -22,6 +22,12 @@ char msg[50];
 int value = 0;
 int msgFail = 0;
 int msgRight = 0;
+
+//Definicion de pineS
+
+const int pines = 4;
+int array [pines] = {D1,D2,D3,D4};
+
 // Conexión a la red WiFi
 void setup_wifi() {
 
@@ -66,27 +72,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
-
-
   DynamicJsonDocument doc(length);
   deserializeJson(doc, payload, length);
   const char* action = doc["action"];
-  Serial.printf("Acción: %s\n", action);
-  // Encendemos un posible switch digital (un diodo led por ejemplo) si el
-  // contenido del cuerpo es 'on'
+  const int position = doc["position"];
+
+  Serial.printf("action: %s\n", action);
+  Serial.printf("position: %i\n", position);
+
   if (strcmp(action, "historico") == 0) {
-    //TODO: NOS DEVUELVE EL HISTORICO EN JSON.
+
     Serial.println("Registrado historico");
   } else if (strcmp(action, "estado") == 0) {
-    //TODO: NOS DEVUELVE EL ESTADO EN JSON
+
     Serial.println("Registrado estado");
   } else if(strcmp(action, "encender") == 0){
-    //TODO: ENCIENDE EL ENCHUFE QUE LE PASO EN JSON
 
-    Serial.println("Procedimiento de encendido para el enchufe: ");
+    digitalWrite(array[position-1], HIGH);
+    Serial.print("Procedimiento de encendido para el enchufe ");
+    Serial.println(array[position]);
+
   }else if(strcmp(action, "apagar") == 0){
-    //TODO: APAGA EL ENCHUFE QUE LE PASO EN JSON
-    Serial.println("Procedimiento de apagado para el enchufe: ");
+
+    digitalWrite(array[position-1], LOW);
+    Serial.print("Procedimiento de apagado para el enchufe ");
+    Serial.println(array[position-1]);
+
   }else{
     Serial.println("Accion no reconocida");
   }
@@ -195,7 +206,7 @@ void makeGetRequest(){
 }
 
 // Método para hacer una petición PUT al servidor REST
-void makePutRequest(char * tipoPeticion){
+void makePutRequest(){
     HTTPClient http;
     // Abrimos la conexión con el servidor REST y definimos la URL del recurso
     String url = "http://";
@@ -203,7 +214,7 @@ void makePutRequest(char * tipoPeticion){
     url += ":";
     url += http_server_port;
     url += "/put/";
-    url += tipoPeticion;
+    url += "/historico";
 
     String message = "Enviando petición PUT al servidor REST. ";
     message += url;
@@ -214,12 +225,15 @@ void makePutRequest(char * tipoPeticion){
     const size_t bufferSize = JSON_OBJECT_SIZE(1) + 370;
     DynamicJsonDocument root(bufferSize);
 
+    root["aliasDisp"] = "disp_01";
+    root["aliasEnch"] = "ench_01";
+    root["consumo"] = analogRead(A0);
 
+    serializeJson(root, Serial);
 
-    String json_string;
-    serializeJson(root, json_string);
+    //TODO: Codificar valores para mandarlo por httpCode
 
-    int httpCode = http.PUT(json_string);
+    int httpCode = http.PUT(serializeJsonPretty(root, Serial));
 
     if (httpCode > 0)
     {
@@ -237,8 +251,13 @@ void makePutRequest(char * tipoPeticion){
 
 // Método de inicialización de la lógica
 void setup() {
-  // Ajustamos el pinmode del pin de salida para poder controlar un
-  pinMode(4, INPUT);
+  // Ajustamos el pinmode del pin de salida para poder controlar un led
+  pinMode(D1,OUTPUT);
+  pinMode(D2,OUTPUT);
+  pinMode(D3,OUTPUT);
+  pinMode(D4,OUTPUT);
+
+  pinMode(A0, INPUT);
 
   // Fijamos el baudrate del puerto de comunicación serie
   Serial.begin(115200);
@@ -278,6 +297,6 @@ void loop() {
     Serial.print("Mensajes correctos");
     Serial.println(msgRight);
     makeGetRequest();
-    //makePutRequest("historico");
+    makePutRequest();
   }
 }

@@ -3,8 +3,8 @@ package acme_regleta;
 import java.util.ArrayList;
 //import java.util.Calendar;
 import java.util.List;
-//import java.util.Timer;
-//import java.util.TimerTask;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.stream.Stream;
 
 import com.google.common.collect.HashMultimap;
@@ -14,7 +14,8 @@ import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-//import io.vertx.core.buffer.Buffer;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttEndpoint;
@@ -40,11 +41,69 @@ public class Mqtt extends AbstractVerticle{
 		MqttServer mqttServer = MqttServer.create(vertx);
 		init(mqttServer);
 		
+		
+		
+//		// Creamos un cliente de prueba para MQTT que publica mensajes cada 3 segundos
+//		MqttClient mqttClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
+//		//Opciones
+//				//setAutoKeepAlive(true) -> Indica que aunque el cliente no interaccione con el canal, no se elimine.
+//		
+//		/*
+//		 * Nos conectamos al servidor que estï¿½ desplegado por el puerto 1883 en la
+//		 * propia mï¿½quina. Recordad que localhost debe ser sustituido por la IP de
+//		 * vuestro servidor. Esta IP puede cambiar cuando os desconectï¿½is de la red, por
+//		 * lo que aseguraros siempre antes de lanzar el cliente que la IP es correcta.
+//		 */
+//		mqttClient.connect(1883, "localhost", s -> {
+//
+//			/*
+//			 * Nos suscribimos al topic_2. Aquï¿½ debera indicar el nombre del topic al que os
+//			 * querï¿½is suscribir. Ademï¿½s, podï¿½is indicar el QoS, en este caso AT_LEAST_ONCE
+//			 * para asegurarnos de que el mensaje llega a su destinatario, aunque puede haber duplicado.
+//			 */
+//			mqttClient.subscribe("main_topic", MqttQoS.AT_LEAST_ONCE.value(), handler -> {
+//				if (handler.succeeded()) {
+//					/*
+//					 * En este punto el cliente ya estï¿½ suscrito al servidor, puesto que se ha
+//					 * ejecutado la funciï¿½n de handler
+//					 */
+//					System.out.println("Cliente " + mqttClient.clientId() + " suscrito correctamente al canal topic_2");
+//				}
+//			});
+//
+//			/*
+//			 * Este timer simular el envï¿½o de mensajes desde el cliente 1 al servidor cada 3
+//			 * segundos.
+//			 */
+//			new Timer().scheduleAtFixedRate(new TimerTask() {
+//
+//				@Override
+//				public void run() {
+//					/*
+//					 * Publicamos un mensaje en el topic "topic_2" con el contenido "Ejemplo" y la
+//					 * hora. Ajustamos el QoS para que se entregue al menos una vez. Indicamos que
+//					 * el mensaje NO es un duplicado (false) y que NO debe ser retenido en el canal
+//					 * (false)
+//					 */
+//					JsonObject js = new JsonObject();
+//					js.put("accion", "encender");
+//					
+//					mqttClient.publish("main_topic",
+//							Buffer.buffer("{\n\"action\" : \"encender\"\n}"),
+//							MqttQoS.AT_LEAST_ONCE, false, false);
+//				}
+//			}, 1000, 15000);	//Espera un delay de 1 seg antes de empezar el bucle de cada 3 seg mandar.
+//		});
+//		
+//		
+//		
+//		
+//		
 		/*
 		 * Ahora creamos un segundo cliente, al que se supone deben llegar todos los
 		 * mensajes que el cliente 1, desplegado anteriormente, publique en el topic
 		 * "main_topic". Este era el punto en el que el proyecto anterior fallaba, debido a
-		 * que no existía ningún broker que se encargara de realizar el envío desde el
+		 * que no existÃ­a ningÃºn broker que se encargara de realizar el envÃ­o desde el
 		 * servidor al resto de clientes.
 		 */
 		
@@ -53,21 +112,21 @@ public class Mqtt extends AbstractVerticle{
 
 			/*
 			 * Al igual que antes, este cliente se suscribe al topic_2 para poder recibir
-			 * los mensajes que el cliente 1 envíe a través de MQTT.
+			 * los mensajes que el cliente 1 envÃ­e a travÃ©s de MQTT.
 			 */
 			mqttClient2.subscribe(canal_1, MqttQoS.AT_LEAST_ONCE.value(), handler -> {
 				if (handler.succeeded()) {
 					/*
-					 * En este punto, el cliente 2 también está suscrito al servidor, por lo que ya
-					 * podrá empezar a recibir los mensajes publicados en el topic.
+					 * En este punto, el cliente 2 tambiÃ©n estÃ¡ suscrito al servidor, por lo que ya
+					 * podrÃ¡ empezar a recibir los mensajes publicados en el topic.
 					 */
 					
 					/*
-					 * Además de suscribirnos al servidor, registraremos un manejador para
+					 * AdemÃ¡s de suscribirnos al servidor, registraremos un manejador para
 					 * interceptar los mensajes que lleguen a nuestro cliente. De manera que el
-					 * proceso será el siguiente: El cliente 1 envía un mensaje al servidor -> el
+					 * proceso serÃ¡ el siguiente: El cliente 1 envÃ­a un mensaje al servidor -> el
 					 * servidor lo recibe y busca los clientes suscritos al topic -> el servidor
-					 * reenvía el mensaje a esos clientes -> los clientes (en este caso el cliente
+					 * reenvÃ­a el mensaje a esos clientes -> los clientes (en este caso el cliente
 					 * 2) recibe el mensaje y lo proceso si fuera necesario.
 					 */
 					
@@ -75,8 +134,8 @@ public class Mqtt extends AbstractVerticle{
 						@Override
 						public void handle(MqttPublishMessage arg0) {
 							/*
-							 * Si se ejecuta este código es que el cliente 2 ha recibido un mensaje
-							 * publicado en algún topic al que estaba suscrito (en este caso, al topic_2).
+							 * Si se ejecuta este cÃ³digo es que el cliente 2 ha recibido un mensaje
+							 * publicado en algÃºn topic al que estaba suscrito (en este caso, al topic_2).
 							 */
 								
 							//TODO: Procesamiento del mensaje.
@@ -90,29 +149,29 @@ public class Mqtt extends AbstractVerticle{
 	}
 
 	/**
-	 * Método encargado de inicializar el servidor y ajustar todos los manejadores
+	 * MÃ©todo encargado de inicializar el servidor y ajustar todos los manejadores
 	 * 
 	 * @param mqttServer
 	 */
 	private static void init(MqttServer mqttServer) {
 		mqttServer.endpointHandler(endpoint -> {
 			/*
-			 * Si se ejecuta este código es que un cliente se ha suscrito al servidor MQTT
-			 * para algún topic.
+			 * Si se ejecuta este cÃ³digo es que un cliente se ha suscrito al servidor MQTT
+			 * para algÃºn topic.
 			 */
 			System.out.println("Nuevo cliente MQTT [" + endpoint.clientIdentifier()
-					+ "] solicitando suscribirse [Id de sesión: " + endpoint.isCleanSession() + "]");
+					+ "] solicitando suscribirse [Id de sesiÃ³n: " + endpoint.isCleanSession() + "]");
 			
 			System.out.println(clientTopics.toString());
 			
 			/*
-			 * Indicamos al cliente que se ha contectado al servidor MQTT y que no tenía
-			 * sesión previamente creada (parámetro false)
+			 * Indicamos al cliente que se ha contectado al servidor MQTT y que no tenÃ­a
+			 * sesiÃ³n previamente creada (parÃ¡metro false)
 			 */
 			endpoint.accept(false);
 
 			/*
-			 * Handler para gestionar las suscripciones a un determinado topic. Aquí
+			 * Handler para gestionar las suscripciones a un determinado topic. AquÃ­
 			 * registraremos el cliente para poder reenviar todos los mensajes que se
 			 * publicen en el topic al que se ha suscrito.
 			 */
@@ -121,20 +180,20 @@ public class Mqtt extends AbstractVerticle{
 			/*
 			 * Handler para gestionar las desuscripciones de un determinado topic. Haremos
 			 * lo contrario que el punto anterior para eliminar al cliente de la lista de
-			 * clientes registrados en el topic. De este modo, no seguirá recibiendo
+			 * clientes registrados en el topic. De este modo, no seguirÃ¡ recibiendo
 			 * mensajes en este topic.
 			 */
 			handleUnsubscription(endpoint);
 
 			/*
-			 * Este handler será llamado cuando se publique un mensaje por parte del cliente
-			 * en algún topic creado en el servidor MQTT. En esta función obtendremos todos
+			 * Este handler serÃ¡ llamado cuando se publique un mensaje por parte del cliente
+			 * en algÃºn topic creado en el servidor MQTT. En esta funciÃ³n obtendremos todos
 			 * los clientes suscritos a este topic y reenviaremos el mensaje a cada uno de
 			 * ellos. Esta es la tarea principal del broken MQTT. En este caso hemos
 			 * implementado un broker muy muy sencillo. Para gestionar QoS, asegurar la
-			 * entrega, guardar los mensajes en una BBDD para después entregarlos, guardar
-			 * los clientes en caso de caída del servidor, etc. debemos recurrir a un código
-			 * más elaborado o usar una solución existente como por ejemplo Mosquitto.
+			 * entrega, guardar los mensajes en una BBDD para despuÃ©s entregarlos, guardar
+			 * los clientes en caso de caÃ­da del servidor, etc. debemos recurrir a un cÃ³digo
+			 * mÃ¡s elaborado o usar una soluciÃ³n existente como por ejemplo Mosquitto.
 			 */
 			publishHandler(endpoint);
 
@@ -147,7 +206,7 @@ public class Mqtt extends AbstractVerticle{
 			
 		}).listen(ar -> {
 			if (ar.succeeded()) {
-				System.out.println("MQTT server está a la escucha por el puerto " + ar.result().actualPort());
+				System.out.println("MQTT server estÃ¡ a la escucha por el puerto " + ar.result().actualPort());
 			} else {
 				System.out.println("Error desplegando el MQTT server");
 				ar.cause().printStackTrace();
@@ -156,27 +215,27 @@ public class Mqtt extends AbstractVerticle{
 	}
 
 	/**
-	 * Método encargado de gestionar las suscripciones de los clientes a los
-	 * diferentes topics. En este método registrará el cliente asociado al topic
+	 * MÃ©todo encargado de gestionar las suscripciones de los clientes a los
+	 * diferentes topics. En este mÃ©todo registrarÃ¡ el cliente asociado al topic
 	 * al que se suscribe
 	 * 
 	 * @param endpoint
 	 */
 	private static void handleSubscription(MqttEndpoint endpoint) {
 		endpoint.subscribeHandler(subscribe -> {
-			// Los niveles de QoS permiten saber el tipo de entrega que se realizará:
+			// Los niveles de QoS permiten saber el tipo de entrega que se realizarÃ¡:
 			// - AT_LEAST_ONCE: Se asegura que los mensajes llegan a los clientes, pero no
-			// que se haga una única vez (pueden llegar duplicados)
-			// - EXACTLY_ONCE: Se asegura que los mensajes llegan a los clientes una única
-			// vez (mecanismo más costoso)
+			// que se haga una Ãºnica vez (pueden llegar duplicados)
+			// - EXACTLY_ONCE: Se asegura que los mensajes llegan a los clientes una Ãºnica
+			// vez (mecanismo mÃ¡s costoso)
 			// - AT_MOST_ONCE: No se asegura que el mensaje llegue al cliente, por lo que no
-			// es necesario ACK por parte de éste
+			// es necesario ACK por parte de Ã©ste
 			List<MqttQoS> grantedQosLevels = new ArrayList<>();
 			for (MqttTopicSubscription s : subscribe.topicSubscriptions()) {
-				System.out.println("Suscripción al topic " + s.topicName() + " con QoS " + s.qualityOfService());
+				System.out.println("SuscripciÃ³n al topic " + s.topicName() + " con QoS " + s.qualityOfService());
 				grantedQosLevels.add(s.qualityOfService());
 
-				// Añadimos al cliente en la lista de clientes suscritos al topic
+				// AÃ±adimos al cliente en la lista de clientes suscritos al topic
 				clientTopics.put(s.topicName(), endpoint);
 			}
 
@@ -189,8 +248,8 @@ public class Mqtt extends AbstractVerticle{
 	}
 
 	/**
-	 * Método encargado de eliminar la suscripción de un cliente a un topic. En este
-	 * método eliminará al cliente de la lista de clientes suscritos a ese topic.
+	 * MÃ©todo encargado de eliminar la suscripciÃ³n de un cliente a un topic. En este
+	 * mÃ©todo eliminarÃ¡ al cliente de la lista de clientes suscritos a ese topic.
 	 * 
 	 * @param endpoint
 	 */
@@ -199,15 +258,15 @@ public class Mqtt extends AbstractVerticle{
 			for (String t : unsubscribe.topics()) {
 				// Eliminos al cliente de la lista de clientes suscritos al topic
 				clientTopics.remove(t, endpoint);
-				System.out.println("Eliminada la suscripción del topic " + t);
+				System.out.println("Eliminada la suscripciÃ³n del topic " + t);
 			}
-			// Informamos al cliente que la desuscripción se ha realizado
+			// Informamos al cliente que la desuscripciÃ³n se ha realizado
 			endpoint.unsubscribeAcknowledge(unsubscribe.messageId());
 		});
 	}
 
 	/**
-	 * Manejador encargado de notificar y procesar la desconexión de los clientes.
+	 * Manejador encargado de notificar y procesar la desconexiÃ³n de los clientes.
 	 * 
 	 * @param endpoint
 	 */
@@ -221,8 +280,8 @@ public class Mqtt extends AbstractVerticle{
 	}
 
 	/**
-	 * Manejador encargado de interceptar los envíos de mensajes de los diferentes
-	 * clientes. Este método deberá procesar el mensaje, identificar los clientes
+	 * Manejador encargado de interceptar los envÃ­os de mensajes de los diferentes
+	 * clientes. Este mÃ©todo deberÃ¡ procesar el mensaje, identificar los clientes
 	 * suscritos al topic donde se publica dicho mensaje y enviar el mensaje a cada
 	 * uno de esos clientes.
 	 * 
@@ -231,13 +290,13 @@ public class Mqtt extends AbstractVerticle{
 	private static void publishHandler(MqttEndpoint endpoint) {
 		endpoint.publishHandler(message -> {
 			/*
-			 * Suscribimos un handler cuando se solicite una publicación de un mensaje en un
+			 * Suscribimos un handler cuando se solicite una publicaciÃ³n de un mensaje en un
 			 * topic
 			 */
 			handleMessage(message, endpoint);
 		}).publishReleaseHandler(messageId -> {
 			/*
-			 * Suscribimos un handler cuando haya finalizado la publicación del mensaje en
+			 * Suscribimos un handler cuando haya finalizado la publicaciÃ³n del mensaje en
 			 * el topic
 			 */
 			endpoint.publishComplete(messageId);
@@ -245,7 +304,7 @@ public class Mqtt extends AbstractVerticle{
 	}
 
 	/**
-	 * Método de utilidad para la gestión de los mensajes salientes.
+	 * MÃ©todo de utilidad para la gestiÃ³n de los mensajes salientes.
 	 * 
 	 * @param message
 	 * @param endpoint
@@ -257,8 +316,8 @@ public class Mqtt extends AbstractVerticle{
 		System.out.println(clientTopics.toString());
 		/*
 		 * Obtenemos todos los clientes suscritos a ese topic (exceptuando el cliente
-		 * que envía el mensaje) para así poder reenviar el mensaje a cada uno de ellos.
-		 * Es aquí donde nuestro código realiza las funciones de un broken MQTT
+		 * que envÃ­a el mensaje) para asÃ­ poder reenviar el mensaje a cada uno de ellos.
+		 * Es aquÃ­ donde nuestro cÃ³digo realiza las funciones de un broken MQTT
 		 */
 		System.out.println("Origen: " + endpoint.clientIdentifier());
 		for (MqttEndpoint client : clientTopics.get(message.topicName())) {
@@ -278,7 +337,7 @@ public class Mqtt extends AbstractVerticle{
 			String topicName = message.topicName();
 			switch (topicName) {
 			/*
-			 * Se podría hacer algo con el mensaje como, por ejemplo, almacenar un registro
+			 * Se podrÃ­a hacer algo con el mensaje como, por ejemplo, almacenar un registro
 			 * en la base de datos
 			 */
 			case "main_topic":
@@ -287,12 +346,12 @@ public class Mqtt extends AbstractVerticle{
 			default:
 				break;
 			}
-			// Envía el ACK al cliente de que el mensaje ha sido publicado
+			// EnvÃ­a el ACK al cliente de que el mensaje ha sido publicado
 			endpoint.publishAcknowledge(message.messageId());
 		} else if (message.qosLevel() == MqttQoS.EXACTLY_ONCE) {
 			/*
-			 * Envía el ACK al cliente de que el mensaje ha sido publicado y cierra el canal
-			 * para este mensaje. Así se evita que los mensajes se publiquen por duplicado
+			 * EnvÃ­a el ACK al cliente de que el mensaje ha sido publicado y cierra el canal
+			 * para este mensaje. AsÃ­ se evita que los mensajes se publiquen por duplicado
 			 * (QoS)
 			 */
 			

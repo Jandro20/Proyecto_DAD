@@ -12,12 +12,17 @@ import acme_regleta.entities.Dispositivo;
 import acme_regleta.entities.Usuario;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.MySQLClient;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.mqtt.MqttClient;
+import io.vertx.mqtt.MqttClientOptions;
+import io.vertx.mqtt.impl.MqttClientImpl;
+import io.netty.handler.codec.mqtt.MqttQoS;
 
 /**
  * Despliegue de una API Rest que se conecta a una db
@@ -29,21 +34,34 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	//Nos guarda la informacion del cliente una vez que nos conectamos en vez de guardarla por cada peticion
 	private AsyncSQLClient mySQLClient;   
+	private MqttClient myMQTTClient;
 	
+	private String channel = "main_topic";
+	private MqttQoS mqttLevel = MqttQoS.AT_LEAST_ONCE;
 	
 	public void start(Future<Void> startFuture) {
 		
 		JsonObject config = new JsonObject()
 								.put("host", "localhost")	//Donde se encuentra el host -- nombre del dominio
 									.put("username", "root")	//Nombre usuario
-										.put("password", "root")	//ContraseÒa usuario
+										.put("password", "root")	//Contrase√±a usuario
 											.put("database", "DAD_ACME")	//Nombre del esquema en MySQLWorkbench
-												.put("port", 3306);	//Puerto en el que se desplegÛ la base de datos.
+												.put("port", 3306);	//Puerto en el que se despleg√≥ la base de datos.
 		
 		
 		//Le pasamos el vertx y el archivo de configuracion creado anteriormente
 		mySQLClient = MySQLClient.createShared(vertx, config);
 		
+		myMQTTClient = MqttClient.create(vertx, new MqttClientOptions().setAutoKeepAlive(true));
+		
+		myMQTTClient.connect(1883, "localhost", s -> {
+		
+			myMQTTClient.subscribe(channel, mqttLevel.value(), handler -> {
+							if (handler.succeeded()) {
+								System.out.println("Cliente " + myMQTTClient.clientId() + " suscrito correctamente al canal topic_2");
+							}
+						});
+		});
 		
 		//Instanciamos un router:
 		Router router = Router.router(vertx);
@@ -65,8 +83,8 @@ public class ResServerRegleta extends AbstractVerticle{
 		
 		//A continuacion definimos las funciones que vamos a usar
 		
-		//router.get("")	//Definimos un get de API REST, donde pasamos por parametro la ruta para esa peticiÛn
-		//Para el uso de variables se le aÒade -> : <- para decirle a vertx que no es texto.
+		//router.get("")	//Definimos un get de API REST, donde pasamos por parametro la ruta para esa petici√≥n
+		//Para el uso de variables se le a√±ade -> : <- para decirle a vertx que no es texto.
 		//Le decimos que para cuando reciba una peticion por esa ruta, la encamine por el handler que voy a definir a continuacion
 		
 		router.get("/usr/:usr/info")
@@ -87,7 +105,7 @@ public class ResServerRegleta extends AbstractVerticle{
 		/*
 		 * Informacion de las URL para las peticiones GET:
 		 	- /usr/:usr/info : Nos devuelve la informacion del usuario usr
-		 	- /usr/:usr/dispositivo/:dispo/info : Nos devuelve la informacion del dispositivo dispo si est· asociado al usuario usr
+		 	- /usr/:usr/dispositivo/:dispo/info : Nos devuelve la informacion del dispositivo dispo si est√° asociado al usuario usr
 		 	- /usr/:usr/dispositivo/all : Nos devuelve la informacion de todos los dispositivos asociados al usuario usr
 		 	- /usr/:usr/dispositivo/:dispo/enchufe/all : Nos devuelve la informacion de todos los enchufes del dispositivo dispo asociados al usuario usr
 		 	- /usr/:usr/dispositivo/:dispo/enchufe/:ench/info : Nos devuelve la informacion del enchufe ench del dispositivo dispo asociados al usuario usr
@@ -110,11 +128,11 @@ public class ResServerRegleta extends AbstractVerticle{
 		
 		/*
 		 *	Informacion de las URL para las peticiones PUT:
-		 	- /put/usr : Nos permite aÒadir un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
-		 	- /put/disp : Nos permite aÒadir un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
+		 	- /put/usr : Nos permite a√±adir un usuario pasandole como JSON los siguientes campos: {aliasUsuario, correo, contrasena}.
+		 	- /put/disp : Nos permite a√±adir un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
 		 	- /put/relacionUD: Nos permite establecer la relacion usuario-dispositivo, pasandole como JSON: {aliasusuario, aliasDisp}
-		 	- /put/estado : Nos permite aÒadir un estado nuevo, pasandole como JSON los campos: {aliasDispositivo, aliasEnchufe, estado_enchufe}.
-		 	- /put/historico : Nos permite aÒadir un nuevo historico al enchufe "aliasEnchufe", 
+		 	- /put/estado : Nos permite a√±adir un estado nuevo, pasandole como JSON los campos: {aliasDispositivo, aliasEnchufe, estado_enchufe}.
+		 	- /put/historico : Nos permite a√±adir un nuevo historico al enchufe "aliasEnchufe", 
 		 			del dispositivo "aliasDispositivo", con el consumo "consumo". Pasandole como parametros: {aliasDispositivo, aliasEnchufe, consumo}
 		 */
 		
@@ -134,6 +152,11 @@ public class ResServerRegleta extends AbstractVerticle{
 		 	- /delete/disp : Nos permite eliminar un nuevo dispositivo pasandole como JSON el campo : {aliasDisp}.
 		 	- /delete/relacionUD: Nos permite eliminar la relacion usuario-dispositivo, pasandole como JSON : {aliasusuario, aliasDisp}
 		 */
+		
+		
+		router.put("/action/")
+				.handler(this::handlerRele);
+		
 		
 	}
 	
@@ -161,7 +184,7 @@ public class ResServerRegleta extends AbstractVerticle{
 					Gson gson = new Gson();
 					List<Usuario> usuario= new ArrayList<>();
 					
-					//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+					//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 					for (JsonObject json : result.result().getRows()) {
 						usuario.add(gson.fromJson(json.encode(), Usuario.class));
 						//Convertimos de jsonObject a object.
@@ -190,7 +213,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 * Funcion para la peticion GET: /usr/:usr/dispositivo/:dispo/info
-	 * @return La informacion del dispositivo dispo si est· asociado al usuario usr
+	 * @return La informacion del dispositivo dispo si est√° asociado al usuario usr
 	 * @param routingContext
 	 */
 	private void handlerDisp(RoutingContext routingContext) {
@@ -212,7 +235,7 @@ public class ResServerRegleta extends AbstractVerticle{
 								Gson gson = new Gson();
 								List<Dispositivo> dispositivo= new ArrayList<>();
 								
-								//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+								//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 								for (JsonObject json : result.result().getRows()) {
 									dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
 									//Convertimos de jsonObject a object.
@@ -259,7 +282,7 @@ public class ResServerRegleta extends AbstractVerticle{
 								Gson gson = new Gson();
 								List<Dispositivo> dispositivo= new ArrayList<>();
 								
-								//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+								//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 								for (JsonObject json : result.result().getRows()) {
 									dispositivo.add(gson.fromJson(json.encode(), Dispositivo.class));
 									//Convertimos de jsonObject a object.
@@ -309,7 +332,7 @@ public class ResServerRegleta extends AbstractVerticle{
 								Gson gson = new Gson();
 								List<Enchufe> enchufe= new ArrayList<>();
 								
-								//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+								//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 								for (JsonObject json : result.result().getRows()) {
 									enchufe.add(gson.fromJson(json.encode(), Enchufe.class));
 									//Convertimos de jsonObject a object.
@@ -361,7 +384,7 @@ public class ResServerRegleta extends AbstractVerticle{
 								Gson gson = new Gson();
 								List<Enchufe> enchufe= new ArrayList<>();
 								
-								//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+								//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 								for (JsonObject json : result.result().getRows()) {
 									enchufe.add(gson.fromJson(json.encode(), Enchufe.class));
 									//Convertimos de jsonObject a object.
@@ -393,7 +416,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerEstado(RoutingContext routingContext) {
-		//Obtengo los par·metros que necesito de la url
+		//Obtengo los par√°metros que necesito de la url
 		String paramUs = routingContext.pathParam("usr");
 		String paramDis = routingContext.pathParam("dispo");
 		String paramEnch = routingContext.pathParam("ench");
@@ -414,7 +437,7 @@ public class ResServerRegleta extends AbstractVerticle{
 								Gson gson = new Gson();
 								List<Estado> estado= new ArrayList<>();
 								
-								//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+								//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 								for (JsonObject json : result.result().getRows()) {
 									estado.add(gson.fromJson(json.encode(), Estado.class));
 									//Convertimos de jsonObject a object.
@@ -450,7 +473,9 @@ public class ResServerRegleta extends AbstractVerticle{
 		String paramUs = routingContext.pathParam("usr");
 		String paramDis = routingContext.pathParam("dispo");
 		String paramEnch = routingContext.pathParam("ench");
-				
+		
+		
+		
 		mySQLClient.getConnection(connection ->{
 			if(connection.succeeded()) {
 				//Realizo la consulta a la base de datos.
@@ -468,7 +493,7 @@ public class ResServerRegleta extends AbstractVerticle{
 						Gson gson = new Gson();
 						List<Historico> historico= new ArrayList<>();
 						
-						//Iteramos cada objeto, lo convertimos a Usuario y lo aÒadimos a la lista.
+						//Iteramos cada objeto, lo convertimos a Usuario y lo a√±adimos a la lista.
 						for (JsonObject json : result.result().getRows()) {
 							historico.add(gson.fromJson(json.encode(), Historico.class));
 							//Convertimos de jsonObject a object.
@@ -496,7 +521,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion PUT: /put/usr
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/put/usr
 	 		Body:
 	 			{
@@ -507,7 +532,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerPUsr(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -553,7 +578,7 @@ public class ResServerRegleta extends AbstractVerticle{
 
 	/**
 	 *	Funcion para la peticion PUT: /put/disp
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/put/disp
 	 		Body:
 	 			{
@@ -562,7 +587,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerPDisp(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -606,22 +631,22 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion PUT: /put/estado
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/put/estado
 	 		Body:
 	 			{
 	 				"aliasDispositivo : "nombre",
 					"aliasEnchufe" : "nombre",
-					"estado_enchufe" : 0 Û 1
+					"estado_enchufe" : 0 √≥ 1
 				}
 				
 		**Los parametros idEstado, idEnchufe y fecha lo precalculamos
-		*	a la hora de hacer la inserciÛn de los datos.
+		*	a la hora de hacer la inserci√≥n de los datos.
 		*TODO: Fecha no lo hace correctamente.
 	 * @param routingContext
 	 */
 	private void handlerPEstado(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -673,7 +698,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion PUT: /put/historico
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/put/historico
 	 		Body:
 	 			{
@@ -684,11 +709,11 @@ public class ResServerRegleta extends AbstractVerticle{
 				}
 				
 		**Los parametros idEstado, idEnchufe y fecha lo precalculamos
-		*	a la hora de hacer la inserciÛn de los datos.
+		*	a la hora de hacer la inserci√≥n de los datos.
 	 * @param routingContext
 	 */
 	private void handlerPHistorico(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -738,7 +763,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion PUT: /put/relacionUD
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/put/relacionUD
 	 		Body:
 	 			{
@@ -749,7 +774,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerUD(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -795,7 +820,7 @@ public class ResServerRegleta extends AbstractVerticle{
 
 	/**
 	 *	Funcion para la peticion DELETE: /delete/usr
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/delete/usr
 	 		Body:
 	 			{
@@ -804,7 +829,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerDUsr(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -844,7 +869,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion DELETE: /delete/disp
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/delete/disp
 	 		Body:
 	 			{
@@ -854,7 +879,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerDDisp(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -895,7 +920,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	
 	/**
 	 *	Funcion para la peticion DELETE: /delete/relacionUD
-	 	Para ello, en POSTMAN, realizar la peticiÛn: 
+	 	Para ello, en POSTMAN, realizar la petici√≥n: 
 	 		localhost:8090/delete/relacionUD
 	 		Body:
 	 			{
@@ -906,7 +931,7 @@ public class ResServerRegleta extends AbstractVerticle{
 	 * @param routingContext
 	 */
 	private void handlerDUD(RoutingContext routingContext) {
-		//Objeto que obtenemos de la peticiÛn PUT
+		//Objeto que obtenemos de la petici√≥n PUT
 		JsonObject json = routingContext.getBodyAsJson();
 		
 		//Extraemos lo que necesitamos:
@@ -947,4 +972,43 @@ public class ResServerRegleta extends AbstractVerticle{
 			connection.result().close();
 		});
 	}
+
+	
+
+	private void handlerRele(RoutingContext routingContext) {
+		//Objeto que obtenemos de la petici√≥n PUT
+		JsonObject json = routingContext.getBodyAsJson();
+		
+		//Extraemos lo que necesitamos:
+		String paramAction = json.getString("action");
+		Integer paramPosition = json.getInteger("position");
+		
+		myMQTTClient.publish(channel, 
+					Buffer.buffer("{\"action\" : '" + paramAction + "', position : " + paramPosition + "}"),
+					mqttLevel, false, false, handler ->{
+			if(handler.succeeded()) {
+				routingContext.response()
+				.setStatusCode(201)
+					.putHeader("content-type", "application/json; charset=utf-8")
+						.end(json.encode());
+			}else {
+				System.out.println(handler.cause().getMessage());
+				routingContext
+					.response()
+						.setStatusCode(400)		//Le indicamos al cliente que ha habido un error 400
+							.end();
+				
+			}
+		});
+			
+		
+		
+	}
+
+
+
+
+
+
+
 }
