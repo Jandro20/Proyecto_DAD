@@ -721,6 +721,8 @@ public class ResServerRegleta extends AbstractVerticle{
 		String paramAliasEnch = json.getString("aliasEnchufe");
 		Integer paramConsumo = json.getInteger("consumo");
 		
+		
+		
 		mySQLClient.getConnection(connection ->{
 			if(connection.succeeded()) {
 				//Realizo la consulta a la base de datos.

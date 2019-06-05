@@ -68,7 +68,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("] ");
   // Leemos la información del cuerpo del mensaje. Para ello no sólo necesitamos
   // el puntero al mensaje, si no su tamaño.
-  for (int i = 0; i < length; i++) {
+  for (unsigned int i = 0; i < length; i++) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
@@ -232,8 +232,9 @@ void makePutRequest(){
     serializeJson(root, Serial);
 
     //TODO: Codificar valores para mandarlo por httpCode
+    // int httpCode = http.PUT(serializeJsonPretty(root, Serial));
 
-    int httpCode = http.PUT(serializeJsonPretty(root, Serial));
+    int httpCode = -1;
 
     if (httpCode > 0)
     {
@@ -247,6 +248,20 @@ void makePutRequest(){
     Serial.printf("\nRespuesta servidor REST PUT %d\n", httpCode);
     // Cerramos la conexión con el servidor REST. [IMPORTANTE, para que no se quede esperando]
     http.end();
+}
+
+//Sensor acs712
+
+float getCorriente(int samplesNumber)
+{
+   float voltage;
+   float corrienteSum = 0;
+   for (int i = 0; i < samplesNumber; i++)
+   {
+      voltage = analogRead(A0) * 5.0 / 1023.0;
+      corrienteSum += (voltage - 2.5) / 0.066; //Sensibilidad para 30A = 0.066 mA.
+   }
+   return(corrienteSum / samplesNumber);
 }
 
 // Método de inicialización de la lógica
@@ -285,6 +300,11 @@ void loop() {
   //Gestiona las esperas. Se pregunta si hay algun mensaje
   client.loop();
 
+  float intensidad = getCorriente(1000); //Realiza las mediciones 1000 veces y nos quedamos con la media.
+  float potencia = 230.0 * 0.707 * intensidad;
+
+  Serial.println(potencia);
+
   long now = millis();
 
   if (now - lastMsgRest > 10000) {
@@ -297,6 +317,6 @@ void loop() {
     Serial.print("Mensajes correctos");
     Serial.println(msgRight);
     makeGetRequest();
-    makePutRequest();
+    // makePutRequest();
   }
 }
