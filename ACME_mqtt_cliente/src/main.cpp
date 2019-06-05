@@ -4,9 +4,8 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 
-
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Regleta";
+const char* password = "r1234567";
 const char* channel_name = "main_topic";  //TOPIC
 //IP del ordenador a la hora de ejecutarlo.
 const char* mqtt_server = "192.168.43.158";
@@ -206,14 +205,14 @@ void makeGetRequest(){
 }
 
 // Método para hacer una petición PUT al servidor REST
-void makePutRequest(){
+void makePutRequest(int potencia){
     HTTPClient http;
     // Abrimos la conexión con el servidor REST y definimos la URL del recurso
     String url = "http://";
     url += http_server;
     url += ":";
     url += http_server_port;
-    url += "/put/";
+    url += "/put";
     url += "/historico";
 
     String message = "Enviando petición PUT al servidor REST. ";
@@ -225,30 +224,56 @@ void makePutRequest(){
     const size_t bufferSize = JSON_OBJECT_SIZE(1) + 370;
     DynamicJsonDocument root(bufferSize);
 
-    root["aliasDisp"] = "disp_01";
-    root["aliasEnch"] = "ench_01";
-    root["consumo"] = analogRead(A0);
+    root["aliasDispositivo"] = "disp_01";
+    root["aliasEnchufe"] = "ench_01";
+    root["consumo"] = potencia;
 
-    serializeJson(root, Serial);
+    String json_ser;
 
-    //TODO: Codificar valores para mandarlo por httpCode
-    // int httpCode = http.PUT(serializeJsonPretty(root, Serial));
+    serializeJson(root, json_ser);
 
-    int httpCode = -1;
+    int httpCode = http.PUT(json_ser);
 
     if (httpCode > 0)
     {
      // Si el código devuelto es > 0, significa que tenemos respuesta, aunque
      // no necesariamente va a ser positivo (podría ser un código 400).
      // Obtenemos el cuerpo de la respuesta y lo imprimimos por el puerto serie
-     String payload = http.getString();
-     Serial.println("payload put: " + payload);
+     // String payload = http.getString();
+     Serial.println("payload put: " + http.getString());
     }
 
     Serial.printf("\nRespuesta servidor REST PUT %d\n", httpCode);
     // Cerramos la conexión con el servidor REST. [IMPORTANTE, para que no se quede esperando]
     http.end();
 }
+
+// Método de inicialización de la lógica
+void setup() {
+  // Ajustamos el pinmode del pin de salida para poder controlar un led
+  pinMode(D1,OUTPUT);
+  pinMode(D2,OUTPUT);
+  pinMode(D3,OUTPUT);
+  pinMode(D4,OUTPUT);
+
+  pinMode(A0, INPUT);
+
+  // Fijamos el baudrate del puerto de comunicación serie
+  Serial.begin(9600);
+  // Nos conectamos a la red WiFi
+  setup_wifi();
+  // Indicamos la dirección y el puerto del servidor donde se encuentra el
+  // servidor MQTT
+  client.setServer(mqtt_server, 1883);
+  // Fijamos la función de callback que se ejecutará cada vez que se publique
+  // un mensaje por parte de otro dispositivo en un canal al que el cliente
+  // actual se encuentre suscrito.
+  //Gestiona la recepcion de cada mensaje.
+  client.setCallback(callback);
+}
+
+float intensidad = 0.0;
+int potencia = 0;
 
 //Sensor acs712
 
@@ -264,30 +289,6 @@ float getCorriente(int samplesNumber)
    return(corrienteSum / samplesNumber);
 }
 
-// Método de inicialización de la lógica
-void setup() {
-  // Ajustamos el pinmode del pin de salida para poder controlar un led
-  pinMode(D1,OUTPUT);
-  pinMode(D2,OUTPUT);
-  pinMode(D3,OUTPUT);
-  pinMode(D4,OUTPUT);
-
-  pinMode(A0, INPUT);
-
-  // Fijamos el baudrate del puerto de comunicación serie
-  Serial.begin(115200);
-  // Nos conectamos a la red WiFi
-  setup_wifi();
-  // Indicamos la dirección y el puerto del servidor donde se encuentra el
-  // servidor MQTT
-  client.setServer(mqtt_server, 1883);
-  // Fijamos la función de callback que se ejecutará cada vez que se publique
-  // un mensaje por parte de otro dispositivo en un canal al que el cliente
-  // actual se encuentre suscrito.
-  //Gestiona la recepcion de cada mensaje.
-  client.setCallback(callback);
-}
-
 void loop() {
 
   // Nos conectamos al servidor MQTT en caso de no estar conectado previamente
@@ -300,23 +301,30 @@ void loop() {
   //Gestiona las esperas. Se pregunta si hay algun mensaje
   client.loop();
 
-  float intensidad = getCorriente(1000); //Realiza las mediciones 1000 veces y nos quedamos con la media.
-  float potencia = 230.0 * 0.707 * intensidad;
 
-  Serial.println(potencia);
 
   long now = millis();
 
-  if (now - lastMsgRest > 10000) {
-    //Espera activa, que realiza una peticion GET y PUT al servidor
-    lastMsgRest = now;
-    Serial.print("mensaje numero: ");
-    Serial.println(msgRight + msgFail);
-    Serial.print("Mensajes erroneos");
-    Serial.println(msgFail);
-    Serial.print("Mensajes correctos");
-    Serial.println(msgRight);
+  // if (now - lastMsgRest > 10000) {
+  //   lastMsgRest = now;
+  //   Serial.print("mensaje numero: ");
+  //   Serial.println(msgRight + msgFail);
+  //   Serial.print("Mensajes erroneos");
+  //   Serial.println(msgFail);
+  //   Serial.print("Mensajes correctos");
+  //   Serial.println(msgRight);
+  //   makeGetRequest();
+  // }
+  //
+  if(now - lastMsgRest > 60000){
+
+    //Sensor ac712
+    intensidad = getCorriente(1);
+    potencia = 220.0 * 0.707 * intensidad;
+    makePutRequest(potencia);
+  }
+
+  if(now - lastMsgRest > 120000){
     makeGetRequest();
-    // makePutRequest();
   }
 }
