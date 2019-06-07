@@ -79,12 +79,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.printf("action: %s\n", action);
   Serial.printf("position: %i\n", position);
 
-  if (strcmp(action, "historico") == 0) {
-
-    Serial.println("Registrado historico");
-  } else if (strcmp(action, "estado") == 0) {
-
-    Serial.println("Registrado estado");
   } else if(strcmp(action, "encender") == 0){
 
     digitalWrite(array[position-1], HIGH);
@@ -140,7 +134,6 @@ void reconnect() {
 }
 
 // Método para hacer una petición GET al servidor REST
-//TODO
 void makeGetRequest(){
     HTTPClient http;
     // Abrimos la conexión con el servidor REST y definimos la URL del recurso
@@ -164,7 +157,6 @@ void makeGetRequest(){
       //Si fuese un PUT -> http.PUT(); [BLOQUEANTE < 100 ms]
     int httpCode = http.GET();
 
-
     if (httpCode > 0)
     {
       msgRight++;
@@ -175,7 +167,6 @@ void makeGetRequest(){
      Serial.println("payload: " + payload);
 
      //A partir de aqui, customizable para nuestro proyecto.
-
      const size_t bufferSize = JSON_OBJECT_SIZE(1) + 500;
      DynamicJsonDocument root(bufferSize);
      deserializeJson(root, payload);
@@ -259,7 +250,7 @@ void setup() {
   pinMode(A0, INPUT);
 
   // Fijamos el baudrate del puerto de comunicación serie
-  Serial.begin(9600);
+  Serial.begin(115200);
   // Nos conectamos a la red WiFi
   setup_wifi();
   // Indicamos la dirección y el puerto del servidor donde se encuentra el
@@ -276,17 +267,16 @@ float intensidad = 0.0;
 int potencia = 0;
 
 //Sensor acs712
-
-float getCorriente(int samplesNumber)
+float getCorriente(int intentos)
 {
-   float voltage;
-   float corrienteSum = 0;
-   for (int i = 0; i < samplesNumber; i++)
+   float voltaje;
+   float sumaCorriente = 0;
+   for (int i = 0; i < intentos; i++)
    {
-      voltage = analogRead(A0) * 5.0 / 1023.0;
-      corrienteSum += (voltage - 2.5) / 0.066; //Sensibilidad para 30A = 0.066 mA.
+      voltaje = analogRead(A0) * 5.0 / 1023.0;
+      sumaCorriente += (voltaje - 2.5) / 0.066; //Sensibilidad para 30A = 0.066 mA.
    }
-   return(corrienteSum / samplesNumber);
+   return(sumaCorriente / intentos);
 }
 
 void loop() {
@@ -301,23 +291,9 @@ void loop() {
   //Gestiona las esperas. Se pregunta si hay algun mensaje
   client.loop();
 
-
-
   long now = millis();
 
-  // if (now - lastMsgRest > 10000) {
-  //   lastMsgRest = now;
-  //   Serial.print("mensaje numero: ");
-  //   Serial.println(msgRight + msgFail);
-  //   Serial.print("Mensajes erroneos");
-  //   Serial.println(msgFail);
-  //   Serial.print("Mensajes correctos");
-  //   Serial.println(msgRight);
-  //   makeGetRequest();
-  // }
-  //
   if(now - lastMsgRest > 60000){
-
     //Sensor ac712
     intensidad = getCorriente(1);
     potencia = 220.0 * 0.707 * intensidad;
