@@ -34,7 +34,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"aliasUsuario\" : \"Miguel\",\n\t\"correo\" : \"correo_miguel\",\n\t\"contrasena\" : \"contra_miguel\"\n}"
+							"raw": "{\n    \"aliasUsuario\": \"Miguel\",\n    \"correo\": \"correo_miguel\",\n    \"contrasena\": \"contra_miguel\"\n}"
 						},
 						"url": {
 							"raw": "localhost:8090/put/usr",
@@ -96,7 +96,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"aliasUsuario\" : \"ale\",\n\t\"aliasDispositivo\" : \"disp_02\"\n}"
+							"raw": "{\n\t\"aliasUsuario\" : \"ale\",\n\t\"aliasDispositivo\" : \"disp_04\"\n}"
 						},
 						"url": {
 							"raw": "localhost:8090/put/relacionUD",
@@ -130,14 +130,13 @@
 							"raw": "{\n\t\"aliasDispositivo\" : \"disp_01\",\n\t\"aliasEnchufe\" : \"ench_01\",\n\t\"estado_enchufe\" : 1\n}"
 						},
 						"url": {
-							"raw": "localhost:8090/put/estado",
+							"raw": "localhost:8090/",
 							"host": [
 								"localhost"
 							],
 							"port": "8090",
 							"path": [
-								"put",
-								"estado"
+								""
 							]
 						},
 						"description": "Añade un estado a la base de datos, pasandole los siguientes parametros con formato JSON:\n\t- aliasDispositivo\n\t- aliasEnchufe\n\t- estado_enchufe"
@@ -180,8 +179,441 @@
 		},
 		{
 			"name": "GET",
-			"item": [],
+			"item": [
+				{
+					"name": "localhost:8090/usr/jose/info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8090/usr/jose/info",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"usr",
+								"jose",
+								"info"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/usr/victor/dispositivo/disp_01/info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8090/usr/victor/dispositivo/disp_01/info",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"usr",
+								"victor",
+								"dispositivo",
+								"disp_01",
+								"info"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/usr/victor/dispositivo/disp_01/enchufe/ench_01/historico",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8090/usr/victor/dispositivo/disp_01/enchufe/ench_01/historico",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"usr",
+								"victor",
+								"dispositivo",
+								"disp_01",
+								"enchufe",
+								"ench_01",
+								"historico"
+							]
+						}
+					},
+					"response": []
+				}
+			],
 			"description": "Todas las peticiones GET para el proyecto de la asignatura de DAD"
+		},
+		{
+			"name": "DELETE",
+			"item": [
+				{
+					"name": "localhost:8090/delete/usr",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasUsuario\" : \"ale\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/delete/usr",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"delete",
+								"usr"
+							]
+						},
+						"description": "Peticion DELETE para eliminar un usuario concreto."
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/delete/disp",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasDispositivo\" : \"disp_03\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/delete/disp",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"delete",
+								"disp"
+							]
+						},
+						"description": "Peticion DELETE para eliminar un dispositvo concreto."
+					},
+					"response": []
+				},
+				{
+					"name": "localhost:8090/delete/relacionUD",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"aliasDispositivo\" : \"disp_02\",\n\t\"aliasUsuario\" : \"victor\"\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/delete/relacionUD",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"delete",
+								"relacionUD"
+							]
+						},
+						"description": "Realiza la peticion DELETE para eliminar la relacion Usuario-Dispositivo"
+					},
+					"response": []
+				}
+			],
+			"description": "Todos las peticiones DELETE para la asignatura de DAD.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "38ea62a4-d8c4-4298-9cd6-5a4b32692491",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "dd12a20f-5590-4082-92b3-06c9d3729392",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "REGLETA",
+			"item": [
+				{
+					"name": "encender1",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"encender\",\n    \"position\" : 1\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "encender2",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"encender\",\n    \"position\" : 2\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "encender3",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"encender\",\n    \"position\" : 3\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "encender4",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"encender\",\n    \"position\" : 4\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "apagar4",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"apagar\",\n    \"position\" : 4\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "apagar3",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"apagar\",\n    \"position\" : 3\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "apagar2",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"apagar\",\n    \"position\" : 2\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "apagar1",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"action\": \"apagar\",\n    \"position\" : 1\n}"
+						},
+						"url": {
+							"raw": "localhost:8090/action/",
+							"host": [
+								"localhost"
+							],
+							"port": "8090",
+							"path": [
+								"action",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
